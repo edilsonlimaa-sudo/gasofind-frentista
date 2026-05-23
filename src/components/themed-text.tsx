@@ -1,10 +1,10 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { Colors, Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
-  type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
+  type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'label' | 'link' | 'linkPrimary' | 'code' | 'data';
   themeColor?: ThemeColor;
 };
 
@@ -20,9 +20,11 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
         type === 'small' && styles.small,
         type === 'smallBold' && styles.smallBold,
         type === 'subtitle' && styles.subtitle,
+        type === 'label' && styles.label,
         type === 'link' && styles.link,
         type === 'linkPrimary' && styles.linkPrimary,
         type === 'code' && styles.code,
+        type === 'data' && styles.data,
         style,
       ]}
       {...rest}
@@ -31,43 +33,65 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 }
 
 const styles = StyleSheet.create({
-  small: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
-  },
-  smallBold: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 700,
-  },
+  // body — Inter 400, 16/24
   default: {
+    fontFamily: Fonts.sans,
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: 500,
   },
+  // small — Inter 500, 14/20
+  small: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  // smallBold — Inter 700, 14/20
+  smallBold: {
+    fontFamily: Fonts.sansBold,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  // title / hero — Space Grotesk 700, 64/72
   title: {
-    fontSize: 48,
-    fontWeight: 600,
-    lineHeight: 52,
+    fontFamily: Fonts.displayBold,
+    fontSize: 64,
+    lineHeight: 72,
   },
+  // subtitle / section — Space Grotesk 600, 36/44
   subtitle: {
-    fontSize: 32,
+    fontFamily: Fonts.display,
+    fontSize: 36,
     lineHeight: 44,
-    fontWeight: 600,
+  },
+  // label — Space Mono 500, 12/16, uppercase, tracked
+  label: {
+    fontFamily: Fonts.mono,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: Colors.textMuted,
+  },
+  // data — Space Mono 700, 48/56
+  data: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 48,
+    lineHeight: 56,
   },
   link: {
-    lineHeight: 30,
+    fontFamily: Fonts.sans,
     fontSize: 14,
+    lineHeight: 20,
   },
   linkPrimary: {
-    lineHeight: 30,
+    fontFamily: Fonts.sans,
     fontSize: 14,
-    color: '#3c87f7',
+    lineHeight: 20,
+    color: Colors.accent,
   },
   code: {
     fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
     fontSize: 12,
+    lineHeight: 18,
   },
 });
