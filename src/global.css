@@ -1,9 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   DESIGN SYSTEM — Control Room Aesthetics (shared with gandola)
+   ───────────────────────────────────────────────────────────── */
+
 :root {
-  --font-display:
-    Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
-    Segoe UI Symbol, Noto Color Emoji;
-  --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
-  --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
-  --font-serif: Georgia, 'Times New Roman', serif;
+  /* Backgrounds */
+  --bg-base:    #080C12;
+  --bg-surface: #0F1520;
+  --bg-border:  #1C2A3A;
+
+  /* Text */
+  --text-primary: #E2EAF2;
+  --text-muted:   #6B7F95;
+
+  /* Semantic status */
+  --status-green: #00E5A0;
+  --status-red:   #FF3F5B;
+  --status-amber: #FFB020;
+  --status-blue:  #2979FF;
+
+  /* Brand accent */
+  --accent: #00B8D9;
+
+  /* Typography scale */
+  --text-label:   0.75rem;
+  --text-body:    1rem;
+  --text-section: 2.25rem;
+  --text-hero:    4rem;
+  --text-data:    3rem;
+
+  /* Fonts (web) */
+  --font-display: 'SpaceGrotesk_600SemiBold', sans-serif;
+  --font-mono:    'SpaceMono_400Regular', monospace;
+  --font-sans:    'Inter_400Regular', system-ui, sans-serif;
+  --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', sans-serif;
+  --font-serif:   Georgia, 'Times New Roman', serif;
 }
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+

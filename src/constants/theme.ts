@@ -1,55 +1,48 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+// ─────────────────────────────────────────────────────────────
+// DESIGN SYSTEM — Control Room Aesthetics (shared with gandola)
+// Dark-only palette mirroring the web app tokens.
+// ─────────────────────────────────────────────────────────────
 
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
+// ── Semantic color tokens ────────────────────────────────────
+// Keys keep backward compatibility with ThemedText / ThemedView.
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  // Base aliases (used by ThemedText/ThemedView defaults)
+  text: '#E2EAF2',
+  background: '#080C12',
+  backgroundElement: '#0F1520',
+  backgroundSelected: '#1C2A3A',
+  textSecondary: '#6B7F95',
+
+  // Full semantic set
+  bgBase: '#080C12',
+  bgSurface: '#0F1520',
+  bgBorder: '#1C2A3A',
+  textPrimary: '#E2EAF2',
+  textMuted: '#6B7F95',
+  statusGreen: '#00E5A0',
+  statusRed: '#FF3F5B',
+  statusAmber: '#FFB020',
+  statusBlue: '#2979FF',
+  accent: '#00B8D9',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export type ThemeColor = keyof typeof Colors;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+// ── Typography ───────────────────────────────────────────────
+// Font family names match the loaded @expo-google-fonts packages.
+export const Fonts = {
+  sans: 'Inter_400Regular',
+  sansMedium: 'Inter_500Medium',
+  sansBold: 'Inter_700Bold',
+  display: 'SpaceGrotesk_600SemiBold',
+  displayBold: 'SpaceGrotesk_700Bold',
+  mono: 'SpaceMono_400Regular',
+  monoBold: 'SpaceMono_700Bold',
+} as const;
 
 export const Spacing = {
   half: 2,
