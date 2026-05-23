@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "gasofindfrentista",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "ios": {
       "icon": "./assets/expo.icon"
     },
@@ -21,6 +21,7 @@
     },
     "web": {
       "output": "static",
+      "bundler": "metro",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
