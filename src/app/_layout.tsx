@@ -1,15 +1,15 @@
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import {
-  SpaceGrotesk_600SemiBold,
-  SpaceGrotesk_700Bold,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
 import {
-  SpaceMono_400Regular,
-  SpaceMono_700Bold,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
 } from '@expo-google-fonts/space-mono';
 import { useFonts } from 'expo-font';
 import { DarkTheme, ThemeProvider } from 'expo-router';
@@ -17,9 +17,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
 import { LoginScreen } from '@/components/login-screen';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
+import HomeScreen from './index';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,7 +28,7 @@ function AppContent() {
 
   if (isLoading) return null;
   if (!accessToken) return <LoginScreen />;
-  return <AppTabs />;
+  return <HomeScreen />;
 }
 
 export default function RootLayout() {
