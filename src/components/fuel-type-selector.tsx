@@ -1,62 +1,54 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { cn } from '@/lib/cn';
+import type { FuelType } from '@/types/sales';
+import { FuelTypeLabels } from '@/types/sales';
+import { Pressable, Text, View } from 'react-native';
 
-import { Colors, Fonts, Spacing } from '@/constants/theme';
-import { FuelType, FuelTypeLabels } from '@/types/station';
+// ============================================================================
+// Fuel Type Selector
+// ============================================================================
 
-const FUEL_TYPES: FuelType[] = ['gasoline', 'ethanol', 'diesel', 'diesel_s10'];
-
-type Props = {
+export interface FuelTypeSelectorProps {
   value: FuelType | null;
-  onChange: (type: FuelType) => void;
+  onChange: (fuelType: FuelType) => void;
+  disabled?: boolean;
+}
+
+const FUEL_CONFIG: Record<FuelType, { emoji: string; description: string }> = {
+  gasoline: { emoji: '⛽', description: 'Premium 87 / 91 octanos' },
+  diesel: { emoji: '🚛', description: 'Para caminhões e maquinaria' },
 };
 
-export function FuelTypeSelector({ value, onChange }: Props) {
+export function FuelTypeSelector({ value, onChange, disabled }: FuelTypeSelectorProps) {
   return (
-    <View style={styles.container}>
-      {FUEL_TYPES.map((type) => {
+    <View className="gap-3">
+      {(Object.keys(FUEL_CONFIG) as FuelType[]).map((type) => {
         const selected = value === type;
+        const { emoji, description } = FUEL_CONFIG[type];
         return (
           <Pressable
             key={type}
-            style={[styles.option, selected && styles.optionSelected]}
-            onPress={() => onChange(type)}>
-            <Text style={[styles.label, selected && styles.labelSelected]}>
-              {FuelTypeLabels[type]}
-            </Text>
+            onPress={() => !disabled && onChange(type)}
+            className={cn(
+              'flex-row items-center gap-4 rounded-2xl p-4 border-2',
+              selected ? 'bg-bg-border border-accent' : 'bg-bg-surface border-bg-border',
+              disabled && 'opacity-40',
+            )}
+          >
+            <Text style={{ fontSize: 36 }}>{emoji}</Text>
+            <View className="flex-1">
+              <Text className={cn('font-sans-bold text-base', selected ? 'text-accent' : 'text-text-primary')}>
+                {FuelTypeLabels[type]}
+              </Text>
+              <Text className="font-sans text-xs text-text-muted mt-0.5">{description}</Text>
+            </View>
+            {selected && (
+              <View className="w-5 h-5 rounded-full bg-accent items-center justify-center">
+                <Text className="text-bg-base text-xs font-sans-bold">✓</Text>
+              </View>
+            )}
           </Pressable>
         );
       })}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  option: {
-    flex: 1,
-    minWidth: '45%',
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.two,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.bgBorder,
-    backgroundColor: Colors.bgSurface,
-    alignItems: 'center',
-  },
-  optionSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.bgBorder,
-  },
-  label: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 14,
-    color: Colors.textMuted,
-  },
-  labelSelected: {
-    color: Colors.accent,
-  },
-});

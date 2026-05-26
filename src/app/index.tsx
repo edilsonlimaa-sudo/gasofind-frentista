@@ -1,232 +1,194 @@
-import { useState } from 'react';
-import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
-} from 'react-native';
+﻿import { CloseShiftModal } from '@/components/close-shift-modal';
+import { SaleCard } from '@/components/sale-card';
+import { ShiftSummaryCard } from '@/components/shift-summary-card';
+import { StartShiftModal } from '@/components/start-shift-modal';
+import { useToast } from '@/components/toast';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { useShift } from '@/contexts/shift-context';
+import { getSales, getSalesSummary } from '@/database/repositories';
+import type { Sale, SalesSummary } from '@/types/sales';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { FuelTypeSelector } from '@/components/fuel-type-selector';
-import { PriceInput } from '@/components/price-input';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
-import { useAuth } from '@/contexts/auth-context';
-import { updateFuelStatus } from '@/services/stations.service';
-import type { FuelType } from '@/types/station';
+export default function Index() {
+  const { currentShift, startNewShift, endShift } = useShift();
+  const { showToast, ToastComponent } = useToast();
+  const [showStartModal, setShowStartModal] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [summary, setSummary] = useState<SalesSummary | null>(null);
+  const [recentSales, setRecentSales] = useState<Sale[]>([]);
 
-export default function HomeScreen() {
-  const { frentista, logout } = useAuth();
+  useFocusEffect(
+    useCallback(() => {
+      if (!currentShift) {
+        setSummary(null);
+        setRecentSales([]);
+        return;
+      }
+      let cancelled = false;
+      (async () => {
+        try {
+          const [summaryData, salesData] = await Promise.all([
+            getSalesSummary(currentShift.id),
+            getSales(currentShift.id),
+          ]);
+          if (!cancelled) {
+            setSummary(summaryData);
+            setRecentSales(salesData.slice(0, 5));
+          }
+        } catch (error) {
+          console.error('Error loading dashboard:', error);
+        }
+      })();
+      return () => { cancelled = true; };
+    }, [currentShift])
+  );
 
-  const [selectedFuel, setSelectedFuel] = useState<FuelType | null>(null);
-  const [priceText, setPriceText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  function parsePrice(text: string): number {
-    return parseFloat(text.replace(',', '.'));
-  }
-
-  async function handleSubmit() {
-    setSuccessMessage(null);
-    setErrorMessage(null);
-
-    if (!selectedFuel) {
-      setErrorMessage('Selecione o tipo de combustível.');
-      return;
-    }
-
-    const price = parsePrice(priceText);
-    if (!priceText || isNaN(price) || price <= 0) {
-      setErrorMessage('Informe um preço válido.');
-      return;
-    }
-
-    if (!frentista) return;
-
-    setIsSubmitting(true);
+  const handleStartShift = async (operatorName: string, initialCash: number, exchangeRate: number) => {
     try {
-      await updateFuelStatus({
-        stationId: frentista.stationId,
-        fuelType: selectedFuel,
-        price,
-      });
-      setSuccessMessage('Preço atualizado com sucesso!');
-      setSelectedFuel(null);
-      setPriceText('');
-    } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message;
-      setErrorMessage(msg ?? 'Erro ao atualizar preço. Tente novamente.');
-    } finally {
-      setIsSubmitting(false);
+      await startNewShift(operatorName, initialCash, exchangeRate);
+      setShowStartModal(false);
+      showToast('Turno iniciado com sucesso!', 'success');
+    } catch (error: any) {
+      throw error;
     }
-  }
+  };
 
-  const canSubmit = !isSubmitting && selectedFuel !== null && priceText.length > 0;
+  const handleCloseShift = async (finalCash: number, notes?: string) => {
+    try {
+      await endShift(finalCash, notes);
+      setShowCloseModal(false);
+      showToast('Turno fechado com sucesso!', 'success');
+    } catch (error: any) {
+      throw error;
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.appName}>Gasofind</Text>
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {frentista?.name ?? ''}
-            </Text>
-          </View>
-          <Pressable onPress={logout} style={styles.logoutButton}>
-            <Text style={styles.logoutText}>Sair</Text>
+    <SafeAreaView className="flex-1 bg-bg-base">
+      {/* Header */}
+      <View className="px-4 pt-4 pb-3 flex-row items-start justify-between border-b border-bg-border">
+        <View>
+          <Text className="font-display-bold text-3xl text-accent">GasoFind</Text>
+          <Text className="font-sans text-sm text-text-muted mt-0.5">Controle de Vendas</Text>
+        </View>
+        <View className="flex-row gap-2">
+          <Pressable
+            className="bg-bg-surface border border-bg-border rounded-xl px-3 py-2"
+            onPress={() => router.push('/settings')}
+          >
+            <Text className="font-sans-bold text-sm text-text-primary">⚙️ Ajustes</Text>
           </Pressable>
-        </View>
-
-        {/* Station info */}
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Seu posto</Text>
-          <Text style={styles.cardValue}>{frentista?.stationId}</Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Tipo de combustível</Text>
-          <FuelTypeSelector value={selectedFuel} onChange={setSelectedFuel} />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Preço por litro</Text>
-          <PriceInput value={priceText} onChange={setPriceText} />
-        </View>
-
-        {/* Feedback messages */}
-        {successMessage && (
-          <View style={styles.messageSuccess}>
-            <Text style={styles.messageText}>{successMessage}</Text>
-          </View>
-        )}
-        {errorMessage && (
-          <View style={styles.messageError}>
-            <Text style={styles.messageText}>{errorMessage}</Text>
-          </View>
-        )}
-
-        {/* Submit */}
-        <Pressable
-          style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={!canSubmit}>
-          {isSubmitting ? (
-            <ActivityIndicator color={Colors.bgBase} />
-          ) : (
-            <Text style={styles.submitText}>Confirmar</Text>
+          {currentShift && (
+            <Pressable
+              className="bg-bg-surface border border-bg-border rounded-xl px-3 py-2"
+              onPress={() => router.push('/history')}
+            >
+              <Text className="font-sans-bold text-sm text-text-primary">📋 Histórico</Text>
+            </Pressable>
           )}
-        </Pressable>
+        </View>
+      </View>
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 8 }}
+      >
+        {/* No active shift */}
+        {!currentShift && (
+          <Card className="items-center py-8">
+            <Text className="font-display-bold text-xl text-text-primary mb-2">
+              Nenhum turno ativo
+            </Text>
+            <Text className="font-sans text-sm text-text-muted text-center mb-6">
+              Inicie um turno para começar a{'\n'}registrar vendas
+            </Text>
+            <Button onPress={() => setShowStartModal(true)} size="lg" className="w-full">
+              Iniciar Turno
+            </Button>
+          </Card>
+        )}
+
+        {/* Active shift dashboard */}
+        {currentShift && (
+          <>
+            <ShiftSummaryCard shift={currentShift} onClose={() => setShowCloseModal(true)} />
+
+            {/* Metrics row */}
+            {summary && (
+              <View className="flex-row gap-3">
+                <View className="flex-1 bg-bg-surface border border-bg-border rounded-2xl p-3 items-center">
+                  <Text className="font-mono-bold text-2xl text-text-primary">{summary.totalSales}</Text>
+                  <Text className="font-sans text-xs text-text-muted mt-1">Vendas</Text>
+                </View>
+                <View className="flex-1 bg-bg-surface border border-bg-border rounded-2xl p-3 items-center">
+                  <Text className="font-mono-bold text-2xl text-accent">${summary.totalRevenue.toFixed(0)}</Text>
+                  <Text className="font-sans text-xs text-text-muted mt-1">Receita</Text>
+                </View>
+                <View className="flex-1 bg-bg-surface border border-bg-border rounded-2xl p-3 items-center">
+                  <Text className="font-mono-bold text-2xl text-status-green">${summary.cashRevenue.toFixed(0)}</Text>
+                  <Text className="font-sans text-xs text-text-muted mt-1">Dinheiro</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Recent sales */}
+            <View>
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="font-display-bold text-base text-text-primary">Últimas vendas</Text>
+                {recentSales.length > 0 && (
+                  <Pressable onPress={() => router.push('/history')}>
+                    <Text className="font-sans-bold text-sm text-accent">Ver tudo →</Text>
+                  </Pressable>
+                )}
+              </View>
+              {recentSales.length === 0 ? (
+                <View className="bg-bg-surface border border-bg-border rounded-2xl p-6 items-center">
+                  <Text className="font-sans text-sm text-text-muted text-center">
+                    Nenhuma venda ainda.{'\n'}Toque em Registrar Venda para começar.
+                  </Text>
+                </View>
+              ) : (
+                <View className="gap-2">
+                  {recentSales.map((sale) => (
+                    <SaleCard key={sale.id} sale={sale} exchangeRate={currentShift.exchangeRate} />
+                  ))}
+                </View>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
+
+      {/* Sticky CTA */}
+      {currentShift && (
+        <View className="px-4 py-3 border-t border-bg-border bg-bg-base">
+          <Button onPress={() => router.push('/sale')} size="lg">
+            + Registrar Venda
+          </Button>
+        </View>
+      )}
+
+      <StartShiftModal
+        visible={showStartModal}
+        onConfirm={handleStartShift}
+        onCancel={() => setShowStartModal(false)}
+      />
+
+      {currentShift && (
+        <CloseShiftModal
+          visible={showCloseModal}
+          shiftId={currentShift.id}
+          initialCash={currentShift.initialCash}
+          onConfirm={handleCloseShift}
+          onCancel={() => setShowCloseModal(false)}
+        />
+      )}
+
+      {ToastComponent}
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.bgBase,
-  },
-  container: {
-    padding: Spacing.four,
-    gap: Spacing.four,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.two,
-  },
-  appName: {
-    fontFamily: Fonts.displayBold,
-    fontSize: 24,
-    color: Colors.accent,
-  },
-  subtitle: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  logoutButton: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: Colors.bgBorder,
-  },
-  logoutText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  card: {
-    backgroundColor: Colors.bgSurface,
-    borderRadius: 12,
-    padding: Spacing.four,
-    borderWidth: 1,
-    borderColor: Colors.bgBorder,
-    gap: Spacing.one,
-  },
-  cardLabel: {
-    fontFamily: Fonts.sans,
-    fontSize: 12,
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  cardValue: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 15,
-    color: Colors.textPrimary,
-  },
-  section: {
-    gap: Spacing.two,
-  },
-  sectionLabel: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 13,
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  messageSuccess: {
-    backgroundColor: '#052e16',
-    borderRadius: 8,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderColor: Colors.statusGreen,
-  },
-  messageError: {
-    backgroundColor: '#2d0a0a',
-    borderRadius: 8,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderColor: Colors.statusRed,
-  },
-  messageText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 14,
-    color: Colors.textPrimary,
-  },
-  submitButton: {
-    backgroundColor: Colors.accent,
-    borderRadius: 10,
-    paddingVertical: Spacing.three,
-    alignItems: 'center',
-    marginTop: Spacing.two,
-  },
-  submitButtonDisabled: {
-    opacity: 0.4,
-  },
-  submitText: {
-    fontFamily: Fonts.sansBold,
-    fontSize: 16,
-    color: Colors.bgBase,
-  },
-});

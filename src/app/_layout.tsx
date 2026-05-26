@@ -12,23 +12,41 @@ import {
     SpaceMono_700Bold,
 } from '@expo-google-fonts/space-mono';
 import { useFonts } from 'expo-font';
-import { DarkTheme, ThemeProvider } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import '../global.css';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { LoginScreen } from '@/components/login-screen';
-import { AuthProvider, useAuth } from '@/contexts/auth-context';
-import HomeScreen from './index';
+import { DatabaseProvider, useDatabase } from '@/contexts/database-context';
+import { ShiftProvider } from '@/contexts/shift-context';
 
 SplashScreen.preventAutoHideAsync();
 
 function AppContent() {
-  const { isLoading, accessToken } = useAuth();
+  const { isInitialized, error } = useDatabase();
 
-  if (isLoading) return null;
-  if (!accessToken) return <LoginScreen />;
-  return <HomeScreen />;
+  if (error) {
+    return (
+      <View className="flex-1 items-center justify-center bg-bg-base p-6">
+        <Text className="font-display-bold text-lg text-status-red mb-3 text-center">
+          Erro ao inicializar banco de dados
+        </Text>
+        <Text className="font-sans text-sm text-text-muted text-center">{error.message}</Text>
+      </View>
+    );
+  }
+
+  if (!isInitialized) {
+    return null; // Keep splash screen visible
+  }
+
+  return (
+    <ShiftProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </ShiftProvider>
+  );
 }
 
 export default function RootLayout() {
@@ -53,11 +71,10 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={DarkTheme}>
-      <AuthProvider>
-        <AnimatedSplashOverlay />
+    <SafeAreaProvider>
+      <DatabaseProvider>
         <AppContent />
-      </AuthProvider>
-    </ThemeProvider>
+      </DatabaseProvider>
+    </SafeAreaProvider>
   );
 }

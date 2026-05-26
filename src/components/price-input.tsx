@@ -1,63 +1,32 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { cn } from '@/lib/cn';
+import { Text, TextInput, View } from 'react-native';
 
-import { Colors, Fonts, Spacing } from '@/constants/theme';
-
-type Props = {
+export interface PriceInputProps {
   value: string;
   onChange: (value: string) => void;
-};
+  disabled?: boolean;
+}
 
-export function PriceInput({ value, onChange }: Props) {
-  function handleChange(text: string) {
-    // Allow only digits and a single comma or dot
-    const cleaned = text.replace(/[^0-9.,]/g, '');
-    onChange(cleaned);
-  }
-
+export function PriceInput({ value, onChange, disabled }: PriceInputProps) {
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.prefix}>
-        <Text style={styles.prefixText}>R$</Text>
+    <View className={cn('flex-row items-center bg-bg-surface border border-bg-border rounded-xl overflow-hidden', disabled && 'opacity-40')}>
+      <View className="px-4 py-3 border-r border-bg-border bg-bg-border">
+        <Text className="font-sans-bold text-text-muted text-base">$</Text>
       </View>
       <TextInput
-        style={styles.input}
+        className="flex-1 font-mono text-text-primary text-2xl px-4 py-3"
         value={value}
-        onChangeText={handleChange}
+        onChangeText={(text) => onChange(text.replace(/[^0-9.,]/g, ''))}
+        placeholder="0.00"
+        placeholderTextColor="#6B7F95"
         keyboardType="decimal-pad"
-        placeholder="0,00"
-        placeholderTextColor={Colors.textMuted}
-        maxLength={8}
+        editable={!disabled}
+        returnKeyType="next"
+        style={{ minHeight: 56 }}
       />
+      <View className="px-3 py-3 border-l border-bg-border bg-bg-border">
+        <Text className="font-sans-bold text-text-muted text-xs">/L</Text>
+      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.bgSurface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.bgBorder,
-    overflow: 'hidden',
-  },
-  prefix: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    backgroundColor: Colors.bgBorder,
-  },
-  prefixText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 16,
-    color: Colors.textMuted,
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    fontFamily: Fonts.sansBold,
-    fontSize: 22,
-    color: Colors.textPrimary,
-  },
-});
