@@ -1,52 +1,226 @@
-# Welcome to your Expo app 👋
+# 💰 Gasofind Frentista - Sistema de Controle de Vendas
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo mobile para frentistas de postos de combustível registrarem vendas e gerenciarem operações diárias.
 
-## Get started
+## 🚀 Quick Start (Modo Mock - Sem Backend)
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+O app está configurado para funcionar **sem backend** usando dados mockados:
 
 ```bash
-npm run reset-project
+# 1. Instalar dependências
+npm install
+
+# 2. Iniciar o app
+npm start
+
+# 3. Login com qualquer email/senha:
+# Email: joao@posto.com
+# Senha: qualquer_coisa
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+📖 **Veja o guia completo**: [MOCK_MODE.md](MOCK_MODE.md)
 
-### Other setup steps
+## ✨ Funcionalidades
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### 💰 Sistema de Vendas
+- Registrar vendas de combustível
+- Controle de turnos (início/fim)
+- Histórico de vendas do dia
+- Resumo de faturamento
 
-## Learn more
+### ⚙️ Controle do Posto
+- Abrir/fechar posto
+- Atualizar nível de fila
+- Publicar avisos operacionais
+- Atualizar preços de combustível
 
-To learn more about developing your project with Expo, look at the following resources:
+### 🔐 Autenticação
+- Login de frentista
+- Sessão persistente
+- Auto-refresh de token
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 📱 Navegação
+
+```
+🏠 Tabs
+├─ 💰 Vendas (principal)
+│   └─ Registrar vendas + controle de turno
+├─ 📋 Histórico
+│   └─ Lista de vendas + resumo
+└─ ⚙️ Posto
+    └─ Status, fila, avisos, preços
+```
+
+## 🛠️ Stack Técnico
+
+- **Framework**: Expo 56 + React Native
+- **Navegação**: Expo Router (file-based)
+- **Estilo**: NativeWind (Tailwind CSS)
+- **Estado**: React Context API
+- **Armazenamento**: Expo SecureStore
+- **Linguagem**: TypeScript
+
+## 📂 Estrutura do Projeto
+
+```
+src/
+├── app/               # Telas (Expo Router)
+│   ├── (tabs)/       # Navegação por tabs
+│   │   ├── index.tsx       # Vendas
+│   │   ├── history.tsx     # Histórico
+│   │   └── station.tsx     # Posto
+│   └── _layout.tsx   # Layout raiz
+├── components/       # Componentes reutilizáveis
+├── contexts/         # Contextos React (Auth, Shift)
+├── services/         # Camada de API
+├── types/            # Definições TypeScript
+├── hooks/            # Custom hooks
+└── constants/        # Tema e configurações
+```
+
+## 🔧 Desenvolvimento
+
+### Comandos Disponíveis
+
+```bash
+# Iniciar dev server
+npm start
+
+# Iniciar com cache limpo
+npm start -- -c
+
+# Rodar linter
+npm run lint
+
+# Build para produção
+npm run build
+```
+
+### Modos de Operação
+
+#### 🧪 Modo Mock (Atual)
+```typescript
+// src/services/auth.service.ts
+const USE_MOCK_AUTH = true;
+
+// src/services/stations.service.ts
+const USE_MOCK_STATIONS = true;
+```
+
+#### 🌐 Modo Real (Com Backend)
+```typescript
+const USE_MOCK_AUTH = false;
+const USE_MOCK_STATIONS = false;
+```
+
+📖 Veja [MOCK_MODE.md](MOCK_MODE.md) para detalhes completos.
+
+## 📋 Documentação
+
+- **[CHANGELOG.md](CHANGELOG.md)** - Histórico de mudanças e arquitetura
+- **[MOCK_MODE.md](MOCK_MODE.md)** - Guia do modo desenvolvimento
+- **[TESTING.md](TESTING.md)** - Guia de testes
+
+## 🔄 Integração com Backend
+
+Quando o backend estiver pronto:
+
+1. Configure a URL no `.env`:
+   ```env
+   EXPO_PUBLIC_API_URL=http://192.168.1.100:3000
+   ```
+
+2. Desative os mocks:
+   ```typescript
+   // auth.service.ts
+   const USE_MOCK_AUTH = false;
+   
+   // stations.service.ts
+   const USE_MOCK_STATIONS = false;
+   ```
+
+3. Implemente endpoints de vendas no backend:
+   - `POST /sales`
+   - `GET /sales`
+   - `GET /sales/summary`
+   - `POST /shifts/start`
+   - `POST /shifts/:id/close`
+
+## 📝 Notas de Desenvolvimento
+
+### Dados Mockados
+
+**Frentista padrão:**
+- Nome: João Silva
+- Email: joao@posto.com
+- ID: frentista_mock_123
+- Posto: station_mock_456
+
+**Preços mockados:**
+- Gasolina: R$ 5,89/L
+- Etanol: R$ 3,99/L
+- Diesel: R$ 5,79/L
+- Diesel S-10: R$ 6,19/L
+
+### Limitações Atuais
+
+⚠️ **Modo Mock**:
+- Dados não persistem ao recarregar
+- Vendas são perdidas ao fechar o app
+- Qualquer email/senha funciona no login
+
+## 🐛 Troubleshooting
+
+### App não inicia
+```bash
+# Limpar cache
+npx expo start -c
+
+# Reinstalar dependências
+rm -rf node_modules
+npm install
+```
+
+### "Session expired" no modo mock
+- Verifique `USE_MOCK_AUTH = true` em `auth.service.ts`
+
+### Vendas não aparecem
+- Certifique-se de iniciar um turno antes de registrar vendas
+- Dados mockados são perdidos ao recarregar (esperado)
+
+## 📱 Testando
+
+### Android
+```bash
+npm start
+# Pressione 'a' para abrir no emulador
+```
+
+### iOS
+```bash
+npm start  
+# Pressione 'i' para abrir no simulador
+```
+
+### Web
+```bash
+npm start
+# Pressione 'w' para abrir no browser
+```
+
+## 🤝 Projeto Relacionado
+
+- **Backend**: [gasofind-backend](../gasofind-backend)
+- **App Motorista**: Em desenvolvimento
+
+## 📄 Licença
+
+Veja [LICENSE](LICENSE)
+
+---
+
+**Versão**: 2.0.0 (Sistema de Vendas)  
+**Última Atualização**: 26 de maio de 2026
 
 ## Join the community
 
