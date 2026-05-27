@@ -1,15 +1,17 @@
 import { FuelTypeSelector } from '@/components/fuel-type-selector';
-import { PaymentMethodSelector } from '@/components/payment-method-selector';
+import { PaymentMethodBottomSheet } from '@/components/payment-method-bottom-sheet';
 import { useToast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/ui/section-header';
 import { VolumeInput } from '@/components/volume-input';
+import { PAYMENT_CONFIG } from '@/constants/payment-methods';
 import { useShift } from '@/contexts/shift-context';
 import { createSale, getFuelTypeByCode } from '@/database/repositories';
 import type { FuelType, PaymentMethod } from '@/types/sales';
+import { PaymentMethodLabels } from '@/types/sales';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Sale() {
@@ -20,6 +22,8 @@ export default function Sale() {
   const [liters, setLiters] = useState('');
   const [lockedPrice, setLockedPrice] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [paymentReference, setPaymentReference] = useState('');
+  const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -48,6 +52,18 @@ export default function Sale() {
     });
   }, [fuelType]);
 
+  // Clear payment reference when payment method changes away from pago_movil
+  useEffect(() => {
+    if (paymentMethod !== 'pago_movil') {
+      setPaymentReference('');
+    }
+  }, [paymentMethod]);
+
+  const handleSelectPayment = (method: PaymentMethod) => {
+    setPaymentMethod(method);
+    setIsPaymentSheetOpen(false);
+  };
+
   const handleSubmitSale = async () => {
     if (!currentShift || !lockedPrice) return;
 
@@ -75,11 +91,13 @@ export default function Sale() {
         liters: litersNum,
         pricePerLiter: lockedPrice,
         paymentMethod,
+        paymentReference: paymentReference.trim() || undefined,
       });
 
       setFuelType(null);
       setLiters('');
       setPaymentMethod(null);
+      setPaymentReference('');
 
       showToast('Venda registrada!', 'success');
       router.back();
@@ -169,11 +187,56 @@ export default function Sale() {
 
           <View>
             <SectionHeader step={3} title="Pagamento" />
-            <PaymentMethodSelector
-              value={paymentMethod}
-              onChange={setPaymentMethod}
-              disabled={isSubmitting}
-            />
+            
+            {/* Payment selection - button when null, compact card when selected */}
+            {paymentMethod === null ? (
+              <Pressable
+                onPress={() => !isSubmitting && setIsPaymentSheetOpen(true)}
+                className="flex-row items-center justify-between bg-bg-surface border-2 border-bg-border rounded-xl px-4"
+                style={{ height: 64 }}
+                disabled={isSubmitting}
+              >
+                <Text className="font-sans text-base text-text-muted">
+                  Selecionar forma de pagamento
+                </Text>
+                <Text className="text-text-muted text-xl">→</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => !isSubmitting && setIsPaymentSheetOpen(true)}
+                className="flex-row items-center gap-3 bg-bg-surface border border-bg-border rounded-xl px-4"
+                style={{ height: 64 }}
+                disabled={isSubmitting}
+              >
+                <Text style={{ fontSize: 28 }}>{PAYMENT_CONFIG[paymentMethod].emoji}</Text>
+                <Text className="font-sans-bold text-base text-text-primary flex-1">
+                  {PaymentMethodLabels[paymentMethod]}
+                </Text>
+                <View className="flex-row items-center gap-2">
+                  <Text className="font-sans text-sm text-accent">Alterar</Text>
+                  <Text className="text-accent text-lg">→</Text>
+                </View>
+              </Pressable>
+            )}
+            
+            {/* Pago Móvil Reference Field */}
+            {paymentMethod === 'pago_movil' && (
+              <View className="mt-3 gap-1.5">
+                <Text className="font-sans text-sm text-text-muted pl-1">
+                  Referência do Pago Móvil <Text className="text-text-muted/50">(opcional)</Text>
+                </Text>
+                <TextInput
+                  className="bg-bg-surface border border-bg-border rounded-xl px-4 font-mono text-base text-text-primary"
+                  style={{ height: 56 }}
+                  value={paymentReference}
+                  onChangeText={setPaymentReference}
+                  placeholder="Digite a referência..."
+                  placeholderTextColor="#6B7F95"
+                  editable={!isSubmitting}
+                  keyboardType="numeric"
+                />
+              </View>
+            )}
           </View>
         </ScrollView>
 
@@ -189,6 +252,13 @@ export default function Sale() {
           </Button>
         </View>
       </KeyboardAvoidingView>
+
+      <PaymentMethodBottomSheet
+        visible={isPaymentSheetOpen}
+        value={paymentMethod}
+        onSelect={handleSelectPayment}
+        onClose={() => setIsPaymentSheetOpen(false)}
+      />
 
       {ToastComponent}
     </SafeAreaView>
