@@ -1,3 +1,4 @@
+import { useToast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
 import { getDailyExchangeRate, saveDailyExchangeRate } from '@/services/settings';
 import { useEffect, useState } from 'react';
@@ -20,6 +21,7 @@ export interface StartShiftModalProps {
 
 export function StartShiftModal({ visible, onConfirm, onCancel }: StartShiftModalProps) {
   const insets = useSafeAreaInsets();
+  const { showToast, ToastComponent } = useToast();
   const [operatorName, setOperatorName] = useState('');
   const [initialCash, setInitialCash] = useState('');
   const [exchangeRate, setExchangeRate] = useState('');
@@ -42,19 +44,19 @@ export function StartShiftModal({ visible, onConfirm, onCancel }: StartShiftModa
 
   const handleConfirm = async () => {
     const name = operatorName.trim();
-    const cash = parseFloat(initialCash.replace(',', '.'));
-    const rate = parseFloat(exchangeRate.replace(',', '.'));
+    const cash = parseFloat(initialCash.replace(/,/g, '.'));
+    const rate = parseFloat(exchangeRate.replace(/,/g, '.'));
 
     if (!name) {
-      alert('Por favor, informe seu nome');
+      showToast('Por favor, informe seu nome', 'error');
       return;
     }
     if (isNaN(cash) || cash < 0) {
-      alert('Por favor, informe um valor válido para o dinheiro inicial');
+      showToast('Por favor, informe um valor válido para o dinheiro inicial', 'error');
       return;
     }
     if (!exchangeRate || isNaN(rate) || rate <= 0) {
-      alert('Por favor, informe a taxa do dia (Bs por $1)');
+      showToast('Por favor, informe a taxa do dia (Bs por $1)', 'error');
       return;
     }
 
@@ -67,7 +69,7 @@ export function StartShiftModal({ visible, onConfirm, onCancel }: StartShiftModa
       setExchangeRate('');
       setIsCachedRate(false);
     } catch (error: any) {
-      alert(error.message || 'Erro ao iniciar turno');
+      showToast(error.message || 'Erro ao iniciar turno', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -171,6 +173,7 @@ export function StartShiftModal({ visible, onConfirm, onCancel }: StartShiftModa
           </View>
         </View>
       </KeyboardAvoidingView>
+      {ToastComponent}
     </Modal>
   );
 }

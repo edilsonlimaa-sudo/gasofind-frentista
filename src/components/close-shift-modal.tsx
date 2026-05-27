@@ -1,3 +1,4 @@
+import { useToast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
 import { getSalesSummary } from '@/database/repositories';
 import type { SalesSummary } from '@/types/sales';
@@ -29,6 +30,7 @@ export interface CloseShiftModalProps {
 
 export function CloseShiftModal({ visible, shiftId, initialCash, onConfirm, onCancel }: CloseShiftModalProps) {
   const insets = useSafeAreaInsets();
+  const { showToast, ToastComponent } = useToast();
   const [finalCash, setFinalCash] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,10 +56,10 @@ export function CloseShiftModal({ visible, shiftId, initialCash, onConfirm, onCa
   };
 
   const handleConfirm = async () => {
-    const cash = parseFloat(finalCash.replace(',', '.'));
+    const cash = parseFloat(finalCash.replace(/,/g, '.'));
 
     if (isNaN(cash) || cash < 0) {
-      alert('Por favor, informe um valor válido para o dinheiro final');
+      showToast('Por favor, informe um valor válido para o dinheiro final', 'error');
       return;
     }
 
@@ -69,7 +71,7 @@ export function CloseShiftModal({ visible, shiftId, initialCash, onConfirm, onCa
       setNotes('');
       setSummary(null);
     } catch (error: any) {
-      alert(error.message || 'Erro ao fechar turno');
+      showToast(error.message || 'Erro ao fechar turno', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -77,7 +79,7 @@ export function CloseShiftModal({ visible, shiftId, initialCash, onConfirm, onCa
 
   const cashSales = summary?.cashRevenue || 0;
   const expectedCash = initialCash + cashSales;
-  const finalCashNum = parseFloat(finalCash.replace(',', '.'));
+  const finalCashNum = parseFloat(finalCash.replace(/,/g, '.'));
   const discrepancy = !isNaN(finalCashNum) ? finalCashNum - expectedCash : 0;
 
   return (
@@ -264,6 +266,7 @@ export function CloseShiftModal({ visible, shiftId, initialCash, onConfirm, onCa
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+      {ToastComponent}
     </Modal>
   );
 }
