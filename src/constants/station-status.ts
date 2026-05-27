@@ -13,7 +13,7 @@ import { statusHasQueue } from '@/types/station-status';
  * NOTE: Expiration only applies to statuses with queue (status === 'open').
  * Other statuses don't expire.
  */
-export const STATUS_EXPIRATION_MINUTES = 0.5; // 30 seconds - FOR TESTING
+export const STATUS_EXPIRATION_MINUTES = 30;
 
 /**
  * Check if a station status has expired based on its updatedAt timestamp.
