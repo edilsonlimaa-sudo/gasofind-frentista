@@ -1,3 +1,4 @@
+import { getSettings } from '@/services/settings';
 import * as SQLite from 'expo-sqlite';
 import { MIGRATIONS, getCurrentVersion } from './migrations';
 
@@ -19,6 +20,50 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
 
   dbInstance = await SQLite.openDatabaseAsync(DATABASE_NAME);
   return dbInstance;
+}
+
+/**
+ * Migrate price data from old SecureStore settings to fuel_types table
+ * Only runs once when fuel_types still has default prices
+ */
+async function migratePricesFromSettings(): Promise<void> {
+  try {
+    const db = await getDatabase();
+    
+    // Check if gasoline still has default price (0.5)
+    const gasolineRow = await db.getFirstAsync<{ pricePerLiter: number }>(
+      "SELECT pricePerLiter FROM fuel_types WHERE code = 'gasoline' LIMIT 1"
+    );
+    
+    if (!gasolineRow || gasolineRow.pricePerLiter !== 0.5) {
+      // Already migrated or custom price set
+      return;
+    }
+
+    // Try to load old settings from SecureStore
+    const oldSettings = await getSettings();
+    
+    if (oldSettings.gasolinePrice && oldSettings.gasolinePrice !== 0.5) {
+      console.log('📦 Migrating gasoline price from settings:', oldSettings.gasolinePrice);
+      await db.runAsync(
+        "UPDATE fuel_types SET pricePerLiter = ?, updatedAt = ? WHERE code = 'gasoline'",
+        [oldSettings.gasolinePrice, new Date().toISOString()]
+      );
+    }
+    
+    if (oldSettings.dieselPrice && oldSettings.dieselPrice !== 0.5) {
+      console.log('📦 Migrating diesel price from settings:', oldSettings.dieselPrice);
+      await db.runAsync(
+        "UPDATE fuel_types SET pricePerLiter = ?, updatedAt = ? WHERE code = 'diesel'",
+        [oldSettings.dieselPrice, new Date().toISOString()]
+      );
+    }
+    
+    console.log('✅ Price migration from settings completed');
+  } catch (error) {
+    console.warn('⚠️  Failed to migrate prices from settings (non-fatal):', error);
+    // Non-fatal error - app can continue with default prices
+  }
 }
 
 /**
@@ -65,6 +110,9 @@ export async function initDatabase(): Promise<void> {
   } else {
     console.log('✅ Database is up to date');
   }
+
+  // Run data migration from old settings to fuel_types table
+  await migratePricesFromSettings();
 }
 
 /**

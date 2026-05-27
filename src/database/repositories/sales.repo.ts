@@ -167,52 +167,58 @@ export async function restoreSale(saleId: string): Promise<void> {
 export async function getSalesSummary(shiftId: string): Promise<SalesSummary> {
   const db = await getDatabase();
 
-  // Overall totals (excluding deleted)
-  const overallResult = await db.getFirstAsync<{
-    totalSales: number;
-    totalRevenue: number;
-    totalLiters: number;
-  }>(
-    `SELECT 
-       COUNT(*) as totalSales,
-       COALESCE(SUM(totalAmount), 0) as totalRevenue,
-       COALESCE(SUM(liters), 0) as totalLiters
-     FROM sales 
-     WHERE shiftId = ? AND deletedAt IS NULL`,
-    [shiftId]
-  );
+  let overallResult: { totalSales: number; totalRevenue: number; totalLiters: number } | undefined;
+  let paymentResults: { paymentMethod: PaymentMethod; count: number; revenue: number }[] = [];
+  let fuelResults: { fuelType: FuelType; liters: number; revenue: number }[] = [];
 
-  // By payment method
-  const paymentResults = await db.getAllAsync<{
-    paymentMethod: PaymentMethod;
-    count: number;
-    revenue: number;
-  }>(
-    `SELECT 
-       paymentMethod,
-       COUNT(*) as count,
-       COALESCE(SUM(totalAmount), 0) as revenue
-     FROM sales 
-     WHERE shiftId = ? AND deletedAt IS NULL
-     GROUP BY paymentMethod`,
-    [shiftId]
-  );
+  await db.withTransactionAsync(async () => {
+    // Overall totals (excluding deleted)
+    overallResult = await db.getFirstAsync<{
+      totalSales: number;
+      totalRevenue: number;
+      totalLiters: number;
+    }>(
+      `SELECT 
+         COUNT(*) as totalSales,
+         COALESCE(SUM(totalAmount), 0) as totalRevenue,
+         COALESCE(SUM(liters), 0) as totalLiters
+       FROM sales 
+       WHERE shiftId = ? AND deletedAt IS NULL`,
+      [shiftId]
+    ) ?? undefined;
 
-  // By fuel type
-  const fuelResults = await db.getAllAsync<{
-    fuelType: FuelType;
-    liters: number;
-    revenue: number;
-  }>(
-    `SELECT 
-       fuelType,
-       COALESCE(SUM(liters), 0) as liters,
-       COALESCE(SUM(totalAmount), 0) as revenue
-     FROM sales 
-     WHERE shiftId = ? AND deletedAt IS NULL
-     GROUP BY fuelType`,
-    [shiftId]
-  );
+    // By payment method
+    paymentResults = await db.getAllAsync<{
+      paymentMethod: PaymentMethod;
+      count: number;
+      revenue: number;
+    }>(
+      `SELECT 
+         paymentMethod,
+         COUNT(*) as count,
+         COALESCE(SUM(totalAmount), 0) as revenue
+       FROM sales 
+       WHERE shiftId = ? AND deletedAt IS NULL
+       GROUP BY paymentMethod`,
+      [shiftId]
+    );
+
+    // By fuel type
+    fuelResults = await db.getAllAsync<{
+      fuelType: FuelType;
+      liters: number;
+      revenue: number;
+    }>(
+      `SELECT 
+         fuelType,
+         COALESCE(SUM(liters), 0) as liters,
+         COALESCE(SUM(totalAmount), 0) as revenue
+       FROM sales 
+       WHERE shiftId = ? AND deletedAt IS NULL
+       GROUP BY fuelType`,
+      [shiftId]
+    );
+  });
 
   // Build summary
   const summary: SalesSummary = {
