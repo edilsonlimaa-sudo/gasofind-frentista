@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/ui/section-header';
 import { VolumeInput } from '@/components/volume-input';
 import { useShift } from '@/contexts/shift-context';
-import { createSale } from '@/database/repositories';
-import { getSettings } from '@/services/settings';
+import { createSale, getFuelTypeByCode } from '@/database/repositories';
 import type { FuelType, PaymentMethod } from '@/types/sales';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -29,14 +28,23 @@ export default function Sale() {
     }
   }, [currentShift]);
 
-  // Load locked price from settings whenever fuel type changes
+  // Load locked price from database whenever fuel type changes
   useEffect(() => {
     if (!fuelType) {
       setLockedPrice(null);
       return;
     }
-    getSettings().then((s) => {
-      setLockedPrice(fuelType === 'gasoline' ? s.gasolinePrice : s.dieselPrice);
+    
+    getFuelTypeByCode(fuelType).then((fuelTypeData) => {
+      if (fuelTypeData) {
+        setLockedPrice(fuelTypeData.pricePerLiter);
+      } else {
+        console.warn(`Fuel type ${fuelType} not found in database`);
+        setLockedPrice(null);
+      }
+    }).catch((error) => {
+      console.error('Error loading fuel type price:', error);
+      setLockedPrice(null);
     });
   }, [fuelType]);
 
@@ -52,7 +60,7 @@ export default function Sale() {
       return;
     }
 
-    const litersNum = parseFloat(liters.replace(',', '.'));
+    const litersNum = parseFloat(liters.replace(/,/g, '.'));
 
     if (!liters || isNaN(litersNum) || litersNum <= 0) {
       showToast('Informe uma quantidade válida de litros', 'error');
@@ -83,7 +91,7 @@ export default function Sale() {
     }
   };
 
-  const litersNum = parseFloat(liters.replace(',', '.'));
+  const litersNum = parseFloat(liters.replace(/,/g, '.'));
   const totalUSD =
     lockedPrice && !isNaN(litersNum) && litersNum > 0 ? litersNum * lockedPrice : 0;
   const totalBs =
@@ -116,7 +124,12 @@ export default function Sale() {
         >
           <View>
             <SectionHeader step={1} title="Combustível" />
-            <FuelTypeSelector value={fuelType} onChange={setFuelType} disabled={isSubmitting} />
+            <FuelTypeSelector 
+              value={fuelType} 
+              onChange={setFuelType} 
+              disabled={isSubmitting}
+              autoSelectSingle
+            />
           </View>
 
           {/* Locked price badge — shown once fuel type is selected */}

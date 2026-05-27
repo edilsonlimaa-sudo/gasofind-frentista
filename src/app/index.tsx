@@ -2,33 +2,45 @@
 import { SaleCard } from '@/components/sale-card';
 import { ShiftSummaryCard } from '@/components/shift-summary-card';
 import { StartShiftModal } from '@/components/start-shift-modal';
+import { StationStatusWidget } from '@/components/station-status-widget';
+import { StatusUpdateModal } from '@/components/status-update-modal';
 import { useToast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useShift } from '@/contexts/shift-context';
-import { getSales, getSalesSummary } from '@/database/repositories';
+import { getSales, getSalesSummary, getStationStatus } from '@/database/repositories';
 import type { Sale, SalesSummary } from '@/types/sales';
+import type { StationStatusRecord } from '@/types/station-status';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Index() {
-  const { currentShift, startNewShift, endShift } = useShift();
+  const { currentShift, isLoadingShift, startNewShift, endShift } = useShift();
   const { showToast, ToastComponent } = useToast();
   const [showStartModal, setShowStartModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showStatusAfterOpen, setShowStatusAfterOpen] = useState(false);
+  const [showStatusAfterClose, setShowStatusAfterClose] = useState(false);
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
+  const [stationStatus, setStationStatus] = useState<StationStatusRecord | null>(null);
 
   useFocusEffect(
     useCallback(() => {
+      // Always load station status (independent of shift)
+      let cancelled = false;
+      getStationStatus().then((s) => {
+        if (!cancelled) setStationStatus(s);
+      });
+
       if (!currentShift) {
         setSummary(null);
         setRecentSales([]);
-        return;
+        return () => { cancelled = true; };
       }
-      let cancelled = false;
+
       (async () => {
         try {
           const [summaryData, salesData] = await Promise.all([
@@ -52,6 +64,7 @@ export default function Index() {
       await startNewShift(operatorName, initialCash, exchangeRate);
       setShowStartModal(false);
       showToast('Turno iniciado com sucesso!', 'success');
+      setShowStatusAfterOpen(true);
     } catch (error: any) {
       throw error;
     }
@@ -62,6 +75,7 @@ export default function Index() {
       await endShift(finalCash, notes);
       setShowCloseModal(false);
       showToast('Turno fechado com sucesso!', 'success');
+      setShowStatusAfterClose(true);
     } catch (error: any) {
       throw error;
     }
@@ -97,8 +111,14 @@ export default function Index() {
         className="flex-1"
         contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 8 }}
       >
+        {/* Station status widget — always visible */}
+        <StationStatusWidget
+          status={stationStatus}
+          onPress={() => router.push('/crowd-control')}
+        />
+
         {/* No active shift */}
-        {!currentShift && (
+        {!currentShift && !isLoadingShift && (
           <Card className="items-center py-8">
             <Text className="font-display-bold text-xl text-text-primary mb-2">
               Nenhum turno ativo
@@ -187,6 +207,26 @@ export default function Index() {
           onCancel={() => setShowCloseModal(false)}
         />
       )}
+
+      <StatusUpdateModal
+        visible={showStatusAfterOpen}
+        mode="after_open"
+        onConfirm={(record) => {
+          setStationStatus(record);
+          setShowStatusAfterOpen(false);
+        }}
+        onDismiss={() => setShowStatusAfterOpen(false)}
+      />
+
+      <StatusUpdateModal
+        visible={showStatusAfterClose}
+        mode="after_close"
+        onConfirm={(record) => {
+          setStationStatus(record);
+          setShowStatusAfterClose(false);
+        }}
+        onDismiss={() => setShowStatusAfterClose(false)}
+      />
 
       {ToastComponent}
     </SafeAreaView>
