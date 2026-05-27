@@ -104,6 +104,8 @@ export interface SalesSummary {
   creditRevenue: number;
   transferSales: number;
   transferRevenue: number;
+  pagoMovilSales: number;
+  pagoMovilRevenue: number;
   otherSales: number;
   otherRevenue: number;
   

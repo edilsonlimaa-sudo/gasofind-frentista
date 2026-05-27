@@ -234,6 +234,8 @@ export async function getSalesSummary(shiftId: string): Promise<SalesSummary> {
     creditRevenue: 0,
     transferSales: 0,
     transferRevenue: 0,
+    pagoMovilSales: 0,
+    pagoMovilRevenue: 0,
     otherSales: 0,
     otherRevenue: 0,
     
@@ -261,6 +263,10 @@ export async function getSalesSummary(shiftId: string): Promise<SalesSummary> {
       case 'bank_transfer':
         summary.transferSales = row.count;
         summary.transferRevenue = row.revenue;
+        break;
+      case 'pago_movil':
+        summary.pagoMovilSales = row.count;
+        summary.pagoMovilRevenue = row.revenue;
         break;
       case 'other':
         summary.otherSales = row.count;

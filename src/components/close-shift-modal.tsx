@@ -146,9 +146,15 @@ export function CloseShiftModal({ visible, shiftId, initialCash, onConfirm, onCa
                       <Text className="font-mono text-sm text-text-primary">${summary.transferRevenue.toFixed(2)}</Text>
                     </View>
                   )}
+                  {summary.pagoMovilRevenue > 0 && (
+                    <View className="flex-row justify-between items-center">
+                      <Text className="font-sans text-sm text-text-muted">📱 Pago Móvil</Text>
+                      <Text className="font-mono text-sm text-text-primary">${summary.pagoMovilRevenue.toFixed(2)}</Text>
+                    </View>
+                  )}
                   {summary.otherRevenue > 0 && (
                     <View className="flex-row justify-between items-center">
-                      <Text className="font-sans text-sm text-text-muted">📱 Outro</Text>
+                      <Text className="font-sans text-sm text-text-muted">🔧 Outro</Text>
                       <Text className="font-mono text-sm text-text-primary">${summary.otherRevenue.toFixed(2)}</Text>
                     </View>
                   )}
