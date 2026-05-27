@@ -9,9 +9,11 @@ export type PaymentMethod =
   | 'bank_transfer'    // Transferência bancária
   | 'other';           // Outros métodos
 
-export type FuelType = 
-  | 'gasoline'         // Gasolina
-  | 'diesel';          // Diesel
+/**
+ * Fuel type code - must match a code in the fuel_types table
+ * Common values: 'gasoline', 'diesel', but custom types can be added
+ */
+export type FuelType = string;
 
 export const PaymentMethodLabels: Record<PaymentMethod, string> = {
   cash: 'Dinheiro',
@@ -21,7 +23,11 @@ export const PaymentMethodLabels: Record<PaymentMethod, string> = {
   other: 'Outro',
 };
 
-export const FuelTypeLabels: Record<FuelType, string> = {
+/**
+ * @deprecated Use fuel_types table data instead of this static mapping
+ * Kept for backward compatibility during migration
+ */
+export const FuelTypeLabels: Record<string, string> = {
   gasoline: 'Gasolina',
   diesel: 'Diesel',
 };
