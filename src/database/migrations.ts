@@ -188,6 +188,68 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_sales_fuel ON sales(fuelType, deletedAt);
     `
   }
+  ,
+  {
+    version: 6,
+    name: 'add_pago_movil_and_payment_reference',
+    up: `
+      -- ========================================
+      -- Add Pago Móvil payment method and payment reference field
+      -- ========================================
+      -- SQLite doesn't support ALTER TABLE for CHECK constraints, so we recreate the table
+      
+      -- Step 1: Create new sales table with updated payment methods and reference field
+      CREATE TABLE IF NOT EXISTS sales_new (
+        id TEXT PRIMARY KEY NOT NULL,
+        shiftId TEXT NOT NULL,
+        fuelType TEXT NOT NULL,
+        liters REAL NOT NULL CHECK(liters > 0),
+        pricePerLiter REAL NOT NULL CHECK(pricePerLiter > 0),
+        totalAmount REAL NOT NULL CHECK(totalAmount > 0),
+        paymentMethod TEXT NOT NULL CHECK(paymentMethod IN ('cash', 'debit_card', 'credit_card', 'bank_transfer', 'pago_movil', 'other')),
+        paymentReference TEXT,
+        createdAt TEXT NOT NULL,
+        
+        -- Soft delete
+        deletedAt TEXT,
+        
+        -- Sync metadata
+        syncStatus TEXT NOT NULL DEFAULT 'pending' CHECK(syncStatus IN ('pending', 'syncing', 'synced', 'error')),
+        syncedAt TEXT,
+        syncRetryCount INTEGER NOT NULL DEFAULT 0,
+        lastSyncError TEXT,
+        version INTEGER NOT NULL DEFAULT 1,
+        
+        FOREIGN KEY (shiftId) REFERENCES shifts(id) ON DELETE CASCADE,
+        FOREIGN KEY (fuelType) REFERENCES fuel_types(code) ON DELETE RESTRICT
+      );
+
+      -- Step 2: Copy existing data
+      INSERT INTO sales_new (
+        id, shiftId, fuelType, liters, pricePerLiter, totalAmount,
+        paymentMethod, paymentReference, createdAt, deletedAt,
+        syncStatus, syncedAt, syncRetryCount, lastSyncError, version
+      )
+      SELECT 
+        id, shiftId, fuelType, liters, pricePerLiter, totalAmount,
+        paymentMethod, NULL as paymentReference, createdAt, deletedAt,
+        syncStatus, syncedAt, syncRetryCount, lastSyncError, version
+      FROM sales;
+
+      -- Step 3: Drop old sales table
+      DROP TABLE sales;
+
+      -- Step 4: Rename sales_new to sales
+      ALTER TABLE sales_new RENAME TO sales;
+
+      -- Step 5: Recreate indexes
+      CREATE INDEX IF NOT EXISTS idx_sales_shift ON sales(shiftId, deletedAt);
+      CREATE INDEX IF NOT EXISTS idx_sales_sync ON sales(syncStatus, createdAt);
+      CREATE INDEX IF NOT EXISTS idx_sales_payment ON sales(paymentMethod, deletedAt);
+      CREATE INDEX IF NOT EXISTS idx_sales_fuel ON sales(fuelType, deletedAt);
+      CREATE INDEX IF NOT EXISTS idx_sales_payment_ref ON sales(paymentReference);
+    `
+  }
 ];
 
 /**

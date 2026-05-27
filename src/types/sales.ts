@@ -7,6 +7,7 @@ export type PaymentMethod =
   | 'debit_card'       // Cartão de débito
   | 'credit_card'      // Cartão de crédito
   | 'bank_transfer'    // Transferência bancária
+  | 'pago_movil'       // Pago Móvil (Venezuela)
   | 'other';           // Outros métodos
 
 /**
@@ -20,6 +21,7 @@ export const PaymentMethodLabels: Record<PaymentMethod, string> = {
   debit_card: 'Débito',
   credit_card: 'Crédito',
   bank_transfer: 'Transferência',
+  pago_movil: 'Pago Móvil',
   other: 'Outro',
 };
 
@@ -44,6 +46,7 @@ export interface Sale {
   pricePerLiter: number;         // Preço unitário
   totalAmount: number;           // liters × pricePerLiter
   paymentMethod: PaymentMethod;
+  paymentReference: string | null; // Transaction reference (e.g., Pago Móvil code)
   createdAt: string;             // ISO 8601 timestamp
   
   // Soft delete
