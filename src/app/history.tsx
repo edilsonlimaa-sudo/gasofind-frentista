@@ -104,7 +104,7 @@ export default function History() {
                   <View className="flex-1 h-1.5 bg-bg-border rounded-full overflow-hidden">
                     <View
                       className="h-full bg-accent rounded-full"
-                      style={{ width: `${(pct * 100).toFixed(0)}%` }}
+                      style={{ width: `${Math.round(pct * 100)}%` }}
                     />
                   </View>
                   <Text className="font-mono-bold text-sm text-text-primary" style={{ width: 72, textAlign: 'right' }}>
