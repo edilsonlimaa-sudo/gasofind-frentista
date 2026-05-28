@@ -3,7 +3,8 @@
 // ============================================================================
 
 export type PaymentMethod = 
-  | 'cash'             // Dinheiro
+  | 'cash_usd'         // Dinheiro físico em USD (divisa)
+  | 'cash_ves'         // Dinheiro físico em Bolívares
   | 'debit_card'       // Cartão de débito
   | 'credit_card'      // Cartão de crédito
   | 'bank_transfer'    // Transferência bancária
@@ -17,7 +18,8 @@ export type PaymentMethod =
 export type FuelType = string;
 
 export const PaymentMethodLabels: Record<PaymentMethod, string> = {
-  cash: 'Dinheiro',
+  cash_usd: 'Dinheiro (USD)',
+  cash_ves: 'Dinheiro (Bs)',
   debit_card: 'Débito',
   credit_card: 'Crédito',
   bank_transfer: 'Transferência',
@@ -71,11 +73,14 @@ export interface Shift {
   closedAt: string | null;       // ISO 8601 timestamp or null
   status: 'active' | 'closed';
   
-  // Cash control
-  initialCash: number;           // Dinheiro inicial na gaveta
+  // Dual currency cash control
+  initialCashUsd: number;        // Dinheiro inicial USD na gaveta
+  initialCashVes: number;        // Dinheiro inicial Bs na gaveta
   exchangeRate: number;          // Taxa do dia: Bolívares por $1
-  finalCash: number | null;      // Contagem final ao fechar turno
-  cashDiscrepancy: number | null; // finalCash - initialCash - cashSales
+  finalCashUsd: number | null;   // Contagem final USD ao fechar turno
+  finalCashVes: number | null;   // Contagem final Bs ao fechar turno
+  cashDiscrepancyUsd: number | null; // finalCashUsd - initialCashUsd - cashUsdSales
+  cashDiscrepancyVes: number | null; // finalCashVes - initialCashVes - cashVesSales
   notes: string | null;          // Observações do operador
   
   // Sync metadata
@@ -96,8 +101,10 @@ export interface SalesSummary {
   totalLiters: number;           // Soma de liters
   
   // By payment method
-  cashSales: number;             // Quantidade
-  cashRevenue: number;           // Valor total
+  cashUsdSales: number;          // Quantidade vendas USD
+  cashUsdRevenue: number;        // Valor total USD
+  cashVesSales: number;          // Quantidade vendas Bs
+  cashVesRevenue: number;        // Valor total Bs
   debitSales: number;
   debitRevenue: number;
   creditSales: number;

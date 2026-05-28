@@ -12,7 +12,8 @@ import { getDatabase } from '../index';
  */
 export async function startShift(
   operatorName: string,
-  initialCash: number = 0,
+  initialCashUsd: number = 0,
+  initialCashVes: number = 0,
   exchangeRate: number = 1
 ): Promise<Shift> {
   const db = await getDatabase();
@@ -33,10 +34,13 @@ export async function startShift(
     startedAt: new Date().toISOString(),
     closedAt: null,
     status: 'active',
-    initialCash,
+    initialCashUsd,
+    initialCashVes,
     exchangeRate,
-    finalCash: null,
-    cashDiscrepancy: null,
+    finalCashUsd: null,
+    finalCashVes: null,
+    cashDiscrepancyUsd: null,
+    cashDiscrepancyVes: null,
     notes: null,
     syncStatus: 'pending',
     syncedAt: null,
@@ -48,19 +52,23 @@ export async function startShift(
   await db.runAsync(
     `INSERT INTO shifts (
       id, operatorName, startedAt, closedAt, status,
-      initialCash, exchangeRate, finalCash, cashDiscrepancy, notes,
+      initialCashUsd, initialCashVes, exchangeRate,
+      finalCashUsd, finalCashVes, cashDiscrepancyUsd, cashDiscrepancyVes, notes,
       syncStatus, syncedAt, syncRetryCount, lastSyncError, version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       shift.id,
       shift.operatorName,
       shift.startedAt,
       shift.closedAt,
       shift.status,
-      shift.initialCash,
+      shift.initialCashUsd,
+      shift.initialCashVes,
       shift.exchangeRate,
-      shift.finalCash,
-      shift.cashDiscrepancy,
+      shift.finalCashUsd,
+      shift.finalCashVes,
+      shift.cashDiscrepancyUsd,
+      shift.cashDiscrepancyVes,
       shift.notes,
       shift.syncStatus,
       shift.syncedAt,
@@ -104,11 +112,12 @@ export async function getShiftById(shiftId: string): Promise<Shift | null> {
 
 /**
  * Close a shift
- * Calculates cash discrepancy based on cash sales
+ * Calculates cash discrepancy based on cash sales (USD and VES separately)
  */
 export async function closeShift(
   shiftId: string,
-  finalCash: number,
+  finalCashUsd: number,
+  finalCashVes: number,
   notes?: string
 ): Promise<Shift> {
   const db = await getDatabase();
@@ -123,22 +132,35 @@ export async function closeShift(
     throw new Error('Este turno já foi fechado');
   }
 
-  // Calculate cash sales total (only non-deleted cash sales)
-  const cashSalesResult = await db.getFirstAsync<{ total: number }>(
+  // Calculate USD cash sales total (only non-deleted cash_usd sales)
+  const cashUsdSalesResult = await db.getFirstAsync<{ total: number }>(
     `SELECT COALESCE(SUM(totalAmount), 0) as total 
      FROM sales 
      WHERE shiftId = ? 
        AND paymentMethod = ? 
        AND deletedAt IS NULL`,
-    [shiftId, 'cash']
+    [shiftId, 'cash_usd']
   );
 
-  const cashSalesTotal = cashSalesResult?.total || 0;
+  // Calculate VES cash sales total (only non-deleted cash_ves sales)
+  const cashVesSalesResult = await db.getFirstAsync<{ total: number }>(
+    `SELECT COALESCE(SUM(totalAmount), 0) as total 
+     FROM sales 
+     WHERE shiftId = ? 
+       AND paymentMethod = ? 
+       AND deletedAt IS NULL`,
+    [shiftId, 'cash_ves']
+  );
 
-  // Cash discrepancy = (finalCash - initialCash) - cashSales
+  const cashUsdSalesTotal = cashUsdSalesResult?.total || 0;
+  const cashVesSalesTotal = cashVesSalesResult?.total || 0;
+
+  // Cash discrepancy = (finalCash - initialCash) - cashSales (per currency)
   // Positive = sobrou dinheiro, Negative = faltou dinheiro
-  const expectedCash = shift.initialCash + cashSalesTotal;
-  const cashDiscrepancy = finalCash - expectedCash;
+  const expectedCashUsd = shift.initialCashUsd + cashUsdSalesTotal;
+  const expectedCashVes = shift.initialCashVes + cashVesSalesTotal;
+  const cashDiscrepancyUsd = finalCashUsd - expectedCashUsd;
+  const cashDiscrepancyVes = finalCashVes - expectedCashVes;
 
   const closedAt = new Date().toISOString();
 
@@ -146,15 +168,17 @@ export async function closeShift(
     `UPDATE shifts 
      SET status = ?,
          closedAt = ?,
-         finalCash = ?,
-         cashDiscrepancy = ?,
+         finalCashUsd = ?,
+         finalCashVes = ?,
+         cashDiscrepancyUsd = ?,
+         cashDiscrepancyVes = ?,
          notes = ?,
          version = version + 1
      WHERE id = ?`,
-    ['closed', closedAt, finalCash, cashDiscrepancy, notes || null, shiftId]
+    ['closed', closedAt, finalCashUsd, finalCashVes, cashDiscrepancyUsd, cashDiscrepancyVes, notes || null, shiftId]
   );
 
-  console.log(`✅ Shift closed: ${shiftId} (Discrepancy: $${cashDiscrepancy.toFixed(2)})`);
+  console.log(`✅ Shift closed: ${shiftId} (USD: $${cashDiscrepancyUsd.toFixed(2)}, Bs: $${cashDiscrepancyVes.toFixed(2)})`);
 
   // Return updated shift
   const updatedShift = await getShiftById(shiftId);

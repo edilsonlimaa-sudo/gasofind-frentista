@@ -250,6 +250,124 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_sales_payment_ref ON sales(paymentReference);
     `
   }
+  ,
+  {
+    version: 7,
+    name: 'split_cash_usd_and_bolivares',
+    up: `
+      -- ========================================
+      -- Split Cash into USD (divisa) and Bolívares (VES)
+      -- ========================================
+      -- Venezuela reality: physical cash can be USD bills (divisa) or Bolívares
+      -- Gas stations dedicate pumps for USD-paying customers
+      -- Need to track separate cash drawers for each currency
+      
+      -- Step 1: Recreate shifts table with dual currency cash control
+      CREATE TABLE IF NOT EXISTS shifts_new (
+        id TEXT PRIMARY KEY NOT NULL,
+        operatorName TEXT NOT NULL,
+        startedAt TEXT NOT NULL,
+        closedAt TEXT,
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'closed')),
+        
+        -- Dual currency cash control
+        initialCashUsd REAL NOT NULL DEFAULT 0,
+        initialCashVes REAL NOT NULL DEFAULT 0,
+        finalCashUsd REAL,
+        finalCashVes REAL,
+        cashDiscrepancyUsd REAL,
+        cashDiscrepancyVes REAL,
+        exchangeRate REAL NOT NULL DEFAULT 1,
+        notes TEXT,
+        
+        -- Sync metadata
+        syncStatus TEXT NOT NULL DEFAULT 'pending' CHECK(syncStatus IN ('pending', 'syncing', 'synced', 'error')),
+        syncedAt TEXT,
+        syncRetryCount INTEGER NOT NULL DEFAULT 0,
+        lastSyncError TEXT,
+        version INTEGER NOT NULL DEFAULT 1
+      );
+
+      -- Copy existing shifts data (map old initialCash -> initialCashUsd, zero out Ves fields)
+      INSERT INTO shifts_new (
+        id, operatorName, startedAt, closedAt, status,
+        initialCashUsd, initialCashVes, finalCashUsd, finalCashVes,
+        cashDiscrepancyUsd, cashDiscrepancyVes, exchangeRate, notes,
+        syncStatus, syncedAt, syncRetryCount, lastSyncError, version
+      )
+      SELECT 
+        id, operatorName, startedAt, closedAt, status,
+        COALESCE(initialCash, 0) as initialCashUsd,
+        0 as initialCashVes,
+        finalCash as finalCashUsd,
+        NULL as finalCashVes,
+        cashDiscrepancy as cashDiscrepancyUsd,
+        NULL as cashDiscrepancyVes,
+        COALESCE(exchangeRate, 1) as exchangeRate,
+        notes,
+        syncStatus, syncedAt, syncRetryCount, lastSyncError, version
+      FROM shifts
+      WHERE EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='shifts');
+
+      DROP TABLE IF EXISTS shifts;
+      ALTER TABLE shifts_new RENAME TO shifts;
+
+      CREATE INDEX IF NOT EXISTS idx_shifts_status ON shifts(status);
+      CREATE INDEX IF NOT EXISTS idx_shifts_sync ON shifts(syncStatus, startedAt);
+
+      -- Step 2: Recreate sales table with cash_usd and cash_ves instead of cash
+      CREATE TABLE IF NOT EXISTS sales_new (
+        id TEXT PRIMARY KEY NOT NULL,
+        shiftId TEXT NOT NULL,
+        fuelType TEXT NOT NULL,
+        liters REAL NOT NULL CHECK(liters > 0),
+        pricePerLiter REAL NOT NULL CHECK(pricePerLiter > 0),
+        totalAmount REAL NOT NULL CHECK(totalAmount > 0),
+        paymentMethod TEXT NOT NULL CHECK(paymentMethod IN ('cash_usd', 'cash_ves', 'debit_card', 'credit_card', 'bank_transfer', 'pago_movil', 'other')),
+        paymentReference TEXT,
+        createdAt TEXT NOT NULL,
+        
+        -- Soft delete
+        deletedAt TEXT,
+        
+        -- Sync metadata
+        syncStatus TEXT NOT NULL DEFAULT 'pending' CHECK(syncStatus IN ('pending', 'syncing', 'synced', 'error')),
+        syncedAt TEXT,
+        syncRetryCount INTEGER NOT NULL DEFAULT 0,
+        lastSyncError TEXT,
+        version INTEGER NOT NULL DEFAULT 1,
+        
+        FOREIGN KEY (shiftId) REFERENCES shifts(id) ON DELETE CASCADE,
+        FOREIGN KEY (fuelType) REFERENCES fuel_types(code) ON DELETE RESTRICT
+      );
+
+      -- Copy existing sales, migrate 'cash' -> 'cash_ves'
+      INSERT INTO sales_new (
+        id, shiftId, fuelType, liters, pricePerLiter, totalAmount,
+        paymentMethod, paymentReference, createdAt, deletedAt,
+        syncStatus, syncedAt, syncRetryCount, lastSyncError, version
+      )
+      SELECT 
+        id, shiftId, fuelType, liters, pricePerLiter, totalAmount,
+        CASE 
+          WHEN paymentMethod = 'cash' THEN 'cash_ves'
+          ELSE paymentMethod
+        END as paymentMethod,
+        paymentReference, createdAt, deletedAt,
+        syncStatus, syncedAt, syncRetryCount, lastSyncError, version
+      FROM sales
+      WHERE EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='sales');
+
+      DROP TABLE IF EXISTS sales;
+      ALTER TABLE sales_new RENAME TO sales;
+
+      CREATE INDEX IF NOT EXISTS idx_sales_shift ON sales(shiftId, deletedAt);
+      CREATE INDEX IF NOT EXISTS idx_sales_sync ON sales(syncStatus, createdAt);
+      CREATE INDEX IF NOT EXISTS idx_sales_payment ON sales(paymentMethod, deletedAt);
+      CREATE INDEX IF NOT EXISTS idx_sales_fuel ON sales(fuelType, deletedAt);
+      CREATE INDEX IF NOT EXISTS idx_sales_payment_ref ON sales(paymentReference);
+    `
+  }
 ];
 
 /**

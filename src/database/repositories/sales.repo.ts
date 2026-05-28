@@ -226,8 +226,10 @@ export async function getSalesSummary(shiftId: string): Promise<SalesSummary> {
     totalRevenue: overallResult?.totalRevenue || 0,
     totalLiters: overallResult?.totalLiters || 0,
     
-    cashSales: 0,
-    cashRevenue: 0,
+    cashUsdSales: 0,
+    cashUsdRevenue: 0,
+    cashVesSales: 0,
+    cashVesRevenue: 0,
     debitSales: 0,
     debitRevenue: 0,
     creditSales: 0,
@@ -248,9 +250,13 @@ export async function getSalesSummary(shiftId: string): Promise<SalesSummary> {
   // Fill payment method data
   for (const row of paymentResults) {
     switch (row.paymentMethod) {
-      case 'cash':
-        summary.cashSales = row.count;
-        summary.cashRevenue = row.revenue;
+      case 'cash_usd':
+        summary.cashUsdSales = row.count;
+        summary.cashUsdRevenue = row.revenue;
+        break;
+      case 'cash_ves':
+        summary.cashVesSales = row.count;
+        summary.cashVesRevenue = row.revenue;
         break;
       case 'debit_card':
         summary.debitSales = row.count;

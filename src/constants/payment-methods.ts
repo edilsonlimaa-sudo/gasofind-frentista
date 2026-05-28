@@ -7,7 +7,8 @@ import type { PaymentMethod } from '@/types/sales';
 
 export const PAYMENT_CONFIG: Record<PaymentMethod, { emoji: string }> = {
   pago_movil: { emoji: '📱' },
-  cash: { emoji: '💵' },
+  cash_ves: { emoji: '💵' },
+  cash_usd: { emoji: '💵' },
   bank_transfer: { emoji: '🏦' },
   debit_card: { emoji: '💳' },
   credit_card: { emoji: '💳' },
@@ -19,7 +20,8 @@ export const PAYMENT_CONFIG: Record<PaymentMethod, { emoji: string }> = {
  */
 export const PAYMENT_METHODS_ORDERED: PaymentMethod[] = [
   'pago_movil',
-  'cash',
+  'cash_ves',
+  'cash_usd',
   'bank_transfer',
   'debit_card',
   'credit_card',

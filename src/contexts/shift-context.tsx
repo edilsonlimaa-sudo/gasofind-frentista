@@ -11,8 +11,8 @@ interface ShiftContextValue {
   currentShift: Shift | null;
   isLoadingShift: boolean;
   refreshShift: () => Promise<void>;
-  startNewShift: (operatorName: string, initialCash: number, exchangeRate: number) => Promise<Shift>;
-  endShift: (finalCash: number, notes?: string) => Promise<Shift>;
+  startNewShift: (operatorName: string, initialCashUsd: number, initialCashVes: number, exchangeRate: number) => Promise<Shift>;
+  endShift: (finalCashUsd: number, finalCashVes: number, notes?: string) => Promise<Shift>;
 }
 
 const ShiftContext = createContext<ShiftContextValue | null>(null);
@@ -46,7 +46,8 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
 
   const startNewShift = useCallback(async (
     operatorName: string,
-    initialCash: number,
+    initialCashUsd: number,
+    initialCashVes: number,
     exchangeRate: number
   ): Promise<Shift> => {
     if (!isInitialized) {
@@ -54,7 +55,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const shift = await startShift(operatorName, initialCash, exchangeRate);
+      const shift = await startShift(operatorName, initialCashUsd, initialCashVes, exchangeRate);
       setCurrentShift(shift);
       return shift;
     } catch (error) {
@@ -64,7 +65,8 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
   }, [isInitialized]);
 
   const endShift = useCallback(async (
-    finalCash: number,
+    finalCashUsd: number,
+    finalCashVes: number,
     notes?: string
   ): Promise<Shift> => {
     if (!isInitialized) {
@@ -76,7 +78,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const closedShift = await closeShift(currentShift.id, finalCash, notes);
+      const closedShift = await closeShift(currentShift.id, finalCashUsd, finalCashVes, notes);
       setCurrentShift(null); // Clear current shift after closing
       return closedShift;
     } catch (error) {
