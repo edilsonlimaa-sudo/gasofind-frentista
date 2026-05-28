@@ -3,10 +3,10 @@ import type { Shift } from '@/types/sales';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withTiming,
 } from 'react-native-reanimated';
 
 // ============================================================================
@@ -101,9 +101,15 @@ export function ShiftSummaryCard({ shift, onClose }: ShiftSummaryCardProps) {
           </Text>
         </View>
         <View className="flex-1">
-          <Text className="font-sans text-xs text-text-muted mb-1">Caixa inicial</Text>
+          <Text className="font-sans text-xs text-text-muted mb-1">Caixa USD</Text>
           <Text className="font-mono-bold text-sm text-accent">
-            ${shift.initialCash.toFixed(2)}
+            ${shift.initialCashUsd.toFixed(2)}
+          </Text>
+        </View>
+        <View className="flex-1">
+          <Text className="font-sans text-xs text-text-muted mb-1">Caixa Bs</Text>
+          <Text className="font-mono-bold text-sm text-accent">
+            Bs {shift.initialCashVes.toFixed(2)}
           </Text>
         </View>
       </View>
