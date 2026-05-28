@@ -1,5 +1,4 @@
-﻿import { CloseShiftModal } from '@/components/close-shift-modal';
-import { SaleCard } from '@/components/sale-card';
+﻿import { SaleCard } from '@/components/sale-card';
 import { ShiftSummaryCard } from '@/components/shift-summary-card';
 import { StartShiftModal } from '@/components/start-shift-modal';
 import { StationStatusWidget } from '@/components/station-status-widget';
@@ -17,12 +16,11 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Index() {
-  const { currentShift, isLoadingShift, startNewShift, endShift } = useShift();
+  const { currentShift, isLoadingShift, startNewShift } = useShift();
   const { showToast, ToastComponent } = useToast();
   const [showStartModal, setShowStartModal] = useState(false);
-  const [showCloseModal, setShowCloseModal] = useState(false);
   const [showStatusAfterOpen, setShowStatusAfterOpen] = useState(false);
-  const [showStatusAfterClose, setShowStatusAfterClose] = useState(false);
+  const [showStatusBeforeClose, setShowStatusBeforeClose] = useState(false);
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
   const [stationStatus, setStationStatus] = useState<StationStatusRecord | null>(null);
@@ -59,23 +57,12 @@ export default function Index() {
     }, [currentShift])
   );
 
-  const handleStartShift = async (operatorName: string, initialCash: number, exchangeRate: number) => {
+  const handleStartShift = async (operatorName: string, initialCashUsd: number, initialCashVes: number, exchangeRate: number) => {
     try {
-      await startNewShift(operatorName, initialCash, exchangeRate);
+      await startNewShift(operatorName, initialCashUsd, initialCashVes, exchangeRate);
       setShowStartModal(false);
       showToast('Turno iniciado com sucesso!', 'success');
       setShowStatusAfterOpen(true);
-    } catch (error: any) {
-      throw error;
-    }
-  };
-
-  const handleCloseShift = async (finalCash: number, notes?: string) => {
-    try {
-      await endShift(finalCash, notes);
-      setShowCloseModal(false);
-      showToast('Turno fechado com sucesso!', 'success');
-      setShowStatusAfterClose(true);
     } catch (error: any) {
       throw error;
     }
@@ -135,7 +122,7 @@ export default function Index() {
         {/* Active shift dashboard */}
         {currentShift && (
           <>
-            <ShiftSummaryCard shift={currentShift} onClose={() => setShowCloseModal(true)} />
+            <ShiftSummaryCard shift={currentShift} onClose={() => setShowStatusBeforeClose(true)} />
 
             {/* Metrics row */}
             {summary && (
@@ -149,7 +136,7 @@ export default function Index() {
                   <Text className="font-sans text-xs text-text-muted mt-1">Receita</Text>
                 </View>
                 <View className="flex-1 bg-bg-surface border border-bg-border rounded-2xl p-3 items-center">
-                  <Text className="font-mono-bold text-2xl text-status-green">${summary.cashRevenue.toFixed(0)}</Text>
+                  <Text className="font-mono-bold text-2xl text-status-green">${(summary.cashUsdRevenue + summary.cashVesRevenue).toFixed(0)}</Text>
                   <Text className="font-sans text-xs text-text-muted mt-1">Dinheiro</Text>
                 </View>
               </View>
@@ -198,16 +185,6 @@ export default function Index() {
         onCancel={() => setShowStartModal(false)}
       />
 
-      {currentShift && (
-        <CloseShiftModal
-          visible={showCloseModal}
-          shiftId={currentShift.id}
-          initialCash={currentShift.initialCash}
-          onConfirm={handleCloseShift}
-          onCancel={() => setShowCloseModal(false)}
-        />
-      )}
-
       <StatusUpdateModal
         visible={showStatusAfterOpen}
         mode="after_open"
@@ -219,13 +196,19 @@ export default function Index() {
       />
 
       <StatusUpdateModal
-        visible={showStatusAfterClose}
+        visible={showStatusBeforeClose}
         mode="after_close"
         onConfirm={(record) => {
           setStationStatus(record);
-          setShowStatusAfterClose(false);
+          setShowStatusBeforeClose(false);
+          // Small delay to let modal close animation finish smoothly
+          setTimeout(() => router.push('/close-shift'), 150);
         }}
-        onDismiss={() => setShowStatusAfterClose(false)}
+        onDismiss={() => {
+          setShowStatusBeforeClose(false);
+          // Small delay to let modal close animation finish smoothly
+          setTimeout(() => router.push('/close-shift'), 150);
+        }}
       />
 
       {ToastComponent}
