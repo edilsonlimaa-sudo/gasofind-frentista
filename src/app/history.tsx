@@ -5,27 +5,31 @@ import { getSales, getSalesSummary } from '@/database/repositories';
 import type { Sale, SalesSummary } from '@/types/sales';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const PAYMENT_ITEMS: Array<{ key: keyof SalesSummary; emoji: string; label: string }> = [
-  { key: 'cashRevenue', emoji: '💵', label: 'Dinheiro' },
-  { key: 'debitRevenue', emoji: '💳', label: 'Débito' },
-  { key: 'creditRevenue', emoji: '💳', label: 'Crédito' },
-  { key: 'transferRevenue', emoji: '🏦', label: 'Transf.' },
-  { key: 'otherRevenue', emoji: '📱', label: 'Outros' },
+const PAYMENT_ITEMS: Array<{ key: keyof SalesSummary; emoji: string; label: string; currency?: 'usd' | 'ves' }> = [
+  { key: 'cashUsdRevenue', emoji: '💵', label: 'Dinheiro USD', currency: 'usd' },
+  { key: 'cashVesRevenue', emoji: '💵', label: 'Dinheiro Bs', currency: 'ves' },
+  { key: 'debitRevenue', emoji: '💳', label: 'Débito', currency: 'ves' },
+  { key: 'creditRevenue', emoji: '💳', label: 'Crédito', currency: 'ves' },
+  { key: 'pagoMovilRevenue', emoji: '📱', label: 'Pago Móvil', currency: 'ves' },
+  { key: 'transferRevenue', emoji: '🏦', label: 'Transferência', currency: 'ves' },
+  { key: 'otherRevenue', emoji: '🔧', label: 'Outros' },
 ];
 
 export default function History() {
   const { currentShift } = useShift();
   const [sales, setSales] = useState<Sale[]>([]);
   const [summary, setSummary] = useState<SalesSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!currentShift) {
       setSales([]);
       setSummary(null);
+      setIsLoading(false);
       return;
     }
 
@@ -38,6 +42,8 @@ export default function History() {
       setSummary(summaryData);
     } catch (error) {
       console.error('Error loading history:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [currentShift]);
 
@@ -94,21 +100,25 @@ export default function History() {
             ))}
           </View>
           <View className="border-t border-bg-border pt-4 gap-2.5">
-            {PAYMENT_ITEMS.filter(({ key }) => (summary[key] as number) > 0).map(({ key, emoji, label }) => {
-              const amount = summary[key] as number;
-              const pct = summary.totalRevenue > 0 ? amount / summary.totalRevenue : 0;
+            {PAYMENT_ITEMS.filter(({ key }) => (summary[key] as number) > 0).map(({ key, emoji, label, currency }) => {
+              const amountUsd = summary[key] as number;
+              const displayAmount = currency === 'ves' && currentShift ? amountUsd * currentShift.exchangeRate : amountUsd;
+              const symbol = currency === 'ves' ? 'Bs ' : '$';
+              const pct = summary.totalRevenue > 0 ? amountUsd / summary.totalRevenue : 0;
+              const color = currency === 'ves' ? '#3B82F6' : currency === 'usd' ? '#10B981' : '#00B8D9';
+              
               return (
                 <View key={key} className="flex-row items-center gap-3">
                   <Text style={{ fontSize: 16, width: 24 }}>{emoji}</Text>
-                  <Text className="font-sans text-sm text-text-muted" style={{ width: 72 }}>{label}</Text>
+                  <Text className="font-sans text-sm text-text-muted" style={{ width: 88 }}>{label}</Text>
                   <View className="flex-1 h-1.5 bg-bg-border rounded-full overflow-hidden">
                     <View
-                      className="h-full bg-accent rounded-full"
-                      style={{ width: `${Math.round(pct * 100)}%` }}
+                      className="h-full rounded-full"
+                      style={{ width: `${Math.round(pct * 100)}%`, backgroundColor: color }}
                     />
                   </View>
-                  <Text className="font-mono-bold text-sm text-text-primary" style={{ width: 72, textAlign: 'right' }}>
-                    ${amount.toFixed(2)}
+                  <Text className="font-mono-bold text-sm" style={{ width: 88, textAlign: 'right', color }}>
+                    {symbol}{displayAmount.toFixed(2)}
                   </Text>
                 </View>
               );
@@ -143,14 +153,18 @@ export default function History() {
           />
         }
         ListEmptyComponent={
-          <View className="items-center py-16">
-            <Text className="font-display-bold text-lg text-text-muted mb-2">
-              Nenhuma venda registrada
-            </Text>
-            <Text className="font-sans text-sm text-text-muted text-center">
-              {'As vendas aparecerão aqui\nassim que forem registradas'}
-            </Text>
-          </View>
+          isLoading ? (
+            <ActivityIndicator color="#00B8D9" className="my-8" />
+          ) : (
+            <View className="items-center py-16">
+              <Text className="font-display-bold text-lg text-text-muted mb-2">
+                Nenhuma venda registrada
+              </Text>
+              <Text className="font-sans text-sm text-text-muted text-center">
+                {'As vendas aparecerão aqui\nassim que forem registradas'}
+              </Text>
+            </View>
+          )
         }
       />
     </SafeAreaView>

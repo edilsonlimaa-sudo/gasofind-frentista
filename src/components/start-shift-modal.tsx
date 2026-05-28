@@ -3,19 +3,19 @@ import { Button } from '@/components/ui/button';
 import { getDailyExchangeRate, saveDailyExchangeRate } from '@/services/settings';
 import { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface StartShiftModalProps {
   visible: boolean;
-  onConfirm: (operatorName: string, initialCash: number, exchangeRate: number) => Promise<void>;
+  onConfirm: (operatorName: string, initialCashUsd: number, initialCashVes: number, exchangeRate: number) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -23,7 +23,8 @@ export function StartShiftModal({ visible, onConfirm, onCancel }: StartShiftModa
   const insets = useSafeAreaInsets();
   const { showToast, ToastComponent } = useToast();
   const [operatorName, setOperatorName] = useState('');
-  const [initialCash, setInitialCash] = useState('');
+  const [initialCashUsd, setInitialCashUsd] = useState('');
+  const [initialCashVes, setInitialCashVes] = useState('');
   const [exchangeRate, setExchangeRate] = useState('');
   const [isCachedRate, setIsCachedRate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,15 +45,20 @@ export function StartShiftModal({ visible, onConfirm, onCancel }: StartShiftModa
 
   const handleConfirm = async () => {
     const name = operatorName.trim();
-    const cash = parseFloat(initialCash.replace(/,/g, '.'));
+    const cashUsd = parseFloat(initialCashUsd.replace(/,/g, '.'));
+    const cashVes = parseFloat(initialCashVes.replace(/,/g, '.'));
     const rate = parseFloat(exchangeRate.replace(/,/g, '.'));
 
     if (!name) {
       showToast('Por favor, informe seu nome', 'error');
       return;
     }
-    if (isNaN(cash) || cash < 0) {
-      showToast('Por favor, informe um valor válido para o dinheiro inicial', 'error');
+    if (isNaN(cashUsd) || cashUsd < 0) {
+      showToast('Por favor, informe um valor válido para o dinheiro inicial (USD)', 'error');
+      return;
+    }
+    if (isNaN(cashVes) || cashVes < 0) {
+      showToast('Por favor, informe um valor válido para o dinheiro inicial (Bs)', 'error');
       return;
     }
     if (!exchangeRate || isNaN(rate) || rate <= 0) {
@@ -63,9 +69,10 @@ export function StartShiftModal({ visible, onConfirm, onCancel }: StartShiftModa
     setIsSubmitting(true);
     try {
       await saveDailyExchangeRate(rate);
-      await onConfirm(name, cash, rate);
+      await onConfirm(name, cashUsd, cashVes, rate);
       setOperatorName('');
-      setInitialCash('');
+      setInitialCashUsd('');
+      setInitialCashVes('');
       setExchangeRate('');
       setIsCachedRate(false);
     } catch (error: any) {
@@ -112,7 +119,7 @@ export function StartShiftModal({ visible, onConfirm, onCancel }: StartShiftModa
 
           <View className="gap-2">
             <Text className="font-sans-bold text-xs text-text-muted uppercase tracking-widest">
-              Dinheiro inicial na gaveta (USD)
+              Dinheiro inicial (USD)
             </Text>
             <View className="flex-row items-center bg-bg-base border border-bg-border rounded-xl overflow-hidden">
               <View className="px-4 border-r border-bg-border bg-bg-border" style={{ height: 56, justifyContent: 'center' }}>
@@ -120,8 +127,30 @@ export function StartShiftModal({ visible, onConfirm, onCancel }: StartShiftModa
               </View>
               <TextInput
                 className="flex-1 font-mono text-text-primary text-2xl px-4"
-                value={initialCash}
-                onChangeText={(text) => setInitialCash(text.replace(/[^0-9.,]/g, ''))}
+                value={initialCashUsd}
+                onChangeText={(text) => setInitialCashUsd(text.replace(/[^0-9.,]/g, ''))}
+                placeholder="0.00"
+                placeholderTextColor="#6B7F95"
+                keyboardType="decimal-pad"
+                editable={!isSubmitting}
+                returnKeyType="next"
+                style={{ height: 56 }}
+              />
+            </View>
+          </View>
+
+          <View className="gap-2">
+            <Text className="font-sans-bold text-xs text-text-muted uppercase tracking-widest">
+              Dinheiro inicial (Bs)
+            </Text>
+            <View className="flex-row items-center bg-bg-base border border-bg-border rounded-xl overflow-hidden">
+              <View className="px-4 border-r border-bg-border bg-bg-border" style={{ height: 56, justifyContent: 'center' }}>
+                <Text className="font-sans-bold text-text-muted text-base">Bs</Text>
+              </View>
+              <TextInput
+                className="flex-1 font-mono text-text-primary text-2xl px-4"
+                value={initialCashVes}
+                onChangeText={(text) => setInitialCashVes(text.replace(/[^0-9.,]/g, ''))}
                 placeholder="0.00"
                 placeholderTextColor="#6B7F95"
                 keyboardType="decimal-pad"
